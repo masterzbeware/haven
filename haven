@@ -18,8 +18,9 @@ local Tabs = {
 }
 
 local GroupBox = Tabs.Main:AddLeftGroupbox("Auto System")
+local ShopBox = Tabs.Main:AddRightGroupbox("Shop")
 
--- ✅ Auto NPC Toggle
+-- ✅ Auto NPC Toggle Setup
 local Toggles = Library.Toggles
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -30,7 +31,7 @@ local PromptEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("NpcAc
 local MY_USER_ID = Players.LocalPlayer.UserId
 local acceptedIds = {}
 
--- Fungsi pengecekan penuh
+-- Fungsi: cek jika visitor penuh
 local function isVisitorFull()
 	local plots = Workspace:FindFirstChild("Plots")
 	if not plots then return true end
@@ -62,7 +63,7 @@ local function isVisitorFull()
 	return false
 end
 
--- Fungsi accept NPC
+-- Fungsi: accept visitor
 local function acceptVisitor(npc)
 	if npc:IsA("Model") and npc.Name:match("^visitor_%d+") then
 		local owner = npc:GetAttribute("Owner")
@@ -76,7 +77,7 @@ local function acceptVisitor(npc)
 	end
 end
 
--- Loop global (tetap aktif, tapi cek toggle)
+-- Loop global, berjalan terus tapi hanya aktif saat toggle nyala
 RunService.Heartbeat:Connect(function()
 	if Toggles.AutoNPC and Toggles.AutoNPC.Value then
 		for _, npc in ipairs(Workspace:GetChildren()) do
@@ -85,7 +86,7 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
--- Tambahkan toggle ke UI
+-- UI Toggle
 GroupBox:AddToggle("AutoNPC", {
 	Text = "Auto NPC",
 	Default = false,
@@ -97,4 +98,36 @@ GroupBox:AddToggle("AutoNPC", {
 			Library:Notify("⛔ Auto NPC dimatikan", 3)
 		end
 	end,
+})
+
+-- ✅ SHOP DROPDOWN DENGAN FLOWERPOT
+ShopBox:AddDropdown("ShopItem", {
+    Values = {
+        "Torch ($5)",
+        "CampFire ($10)",
+        "Chair ($5)",
+        "FlowerPot ($20)"
+    },
+    Default = 1,
+    Multi = false,
+    Text = "Select Item",
+    Tooltip = "Pilih item untuk dibeli dari Shop",
+    Callback = function(selected)
+        local itemMap = {
+            ["Torch ($5)"] = "Torch_1",
+            ["CampFire ($10)"] = "CampFire_1",
+            ["Chair ($5)"] = "Chair_1",
+            ["FlowerPot ($20)"] = "Flower_1"
+        }
+
+        local itemId = itemMap[selected]
+        if itemId then
+            local args = { itemId, false }
+            game:GetService("ReplicatedStorage"):WaitForChild("Events")
+                :WaitForChild("SuppliesBuy"):FireServer(unpack(args))
+            Library:Notify("🛒 Dibeli: " .. selected, 3)
+        else
+            Library:Notify("❌ Item tidak dikenal", 3)
+        end
+    end
 })
