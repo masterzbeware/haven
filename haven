@@ -1,70 +1,96 @@
---[[ 📌 AUTO ACCEPT VISITOR MILIK SENDIRI – DELTA EXECUTOR VERSION
-     - Cek owner NPC == UserId sendiri
-     - Tidak accept jika counter visitor sudah 25/25
---]]
+-- ✅ Obsidian UI Setup
+local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
-local PromptEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("NpcAcceptPromptTriggered")
+Library.ForceCheckbox = false
+Library.ShowToggleFrameInKeybinds = true
 
--- Ganti ini sesuai user ID kamu
-local MY_USER_ID = 8684717800
-local acceptedIds = {}
+local Window = Library:CreateWindow({
+    Title = "Made by MasterZ",
+    Footer = "v2.0.0",
+    Icon = 0,
+    NotifySide = "Right",
+    ShowCustomCursor = true,
+})
 
--- Fungsi: Cek apakah plot sudah penuh (Counter.Text = 25/25)
-local function isVisitorFull()
-	local plots = Workspace:FindFirstChild("Plots")
-	if not plots then return true end
+local Tabs = {
+    Main = Window:AddTab("Main", "user")
+}
 
-	for _, plot in ipairs(plots:GetChildren()) do
-		if plot:IsA("Part") and plot:GetAttribute("Owner") == MY_USER_ID then
-			local sign = plot:FindFirstChild("Sign")
-			if sign then
-				local signFace = sign:FindFirstChild("SignFace")
-				if signFace then
-					local gui = signFace:FindFirstChildWhichIsA("SurfaceGui")
-					if gui then
-						local visitors = gui:FindFirstChild("Visitors")
-						if visitors and visitors:IsA("TextLabel") then
-							local counter = visitors:FindFirstChild("Counter")
-							if counter and counter:IsA("TextLabel") then
-								local current, max = string.match(counter.Text, "(%d+)/(%d+)")
-								current, max = tonumber(current), tonumber(max)
-								if current and max and current >= max then
-									return true
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-	return false
-end
+-- ✅ UI Toggle: Auto NPC
+local GroupBox = Tabs.Main:AddLeftGroupbox("Auto System")
 
--- Fungsi: Accept visitor jika milik sendiri dan belum penuh
-local function acceptVisitor(npc)
-	if npc:IsA("Model") and npc.Name:match("^visitor_%d+") then
-		local owner = npc:GetAttribute("Owner")
-		local id = npc:GetAttribute("Id")
-		if owner == MY_USER_ID and typeof(id) == "string" and not acceptedIds[id] and id:match("^%b{}$") then
-			if isVisitorFull() then
-				warn("❌ Visitor penuh. Melewati:", npc.Name)
-				return
-			end
-			acceptedIds[id] = true
-			PromptEvent:FireServer(id)
-			print("✅ Accepted NPC:", id)
-		end
-	end
-end
+GroupBox:AddToggle("AutoNPC", {
+    Text = "Auto NPC",
+    Default = false,
+    Tooltip = "Terima visitor milik sendiri",
+    Callback = function(enabled)
+        if enabled then
+            -- Mulai sistem auto NPC
+            local Players = game:GetService("Players")
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            local Workspace = game:GetService("Workspace")
+            local PromptEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("NpcAcceptPromptTriggered")
 
--- Loop terus-menerus cek NPC baru
-while true do
-	for _, npc in ipairs(Workspace:GetChildren()) do
-		acceptVisitor(npc)
-	end
-	wait(0.2) -- Jangan terlalu spam, bisa kamu ubah jadi 1-2 detik 
-end
+            local MY_USER_ID = Players.LocalPlayer.UserId
+            local acceptedIds = {}
+
+            local function isVisitorFull()
+                local plots = Workspace:FindFirstChild("Plots")
+                if not plots then return true end
+
+                for _, plot in ipairs(plots:GetChildren()) do
+                    if plot:IsA("Part") and plot:GetAttribute("Owner") == MY_USER_ID then
+                        local sign = plot:FindFirstChild("Sign")
+                        if sign then
+                            local signFace = sign:FindFirstChild("SignFace")
+                            if signFace then
+                                local gui = signFace:FindFirstChildWhichIsA("SurfaceGui")
+                                if gui then
+                                    local visitors = gui:FindFirstChild("Visitors")
+                                    if visitors and visitors:IsA("TextLabel") then
+                                        local counter = visitors:FindFirstChild("Counter")
+                                        if counter and counter:IsA("TextLabel") then
+                                            local current, max = string.match(counter.Text, "(%d+)/(%d+)")
+                                            current, max = tonumber(current), tonumber(max)
+                                            if current and max and current >= max then
+                                                return true
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                return false
+            end
+
+            local function acceptVisitor(npc)
+                if npc:IsA("Model") and npc.Name:match("^visitor_%d+") then
+                    local owner = npc:GetAttribute("Owner")
+                    local id = npc:GetAttribute("Id")
+                    if owner == MY_USER_ID and typeof(id) == "string" and not acceptedIds[id] and id:match("^%b{}$") then
+                        if isVisitorFull() then return end
+                        acceptedIds[id] = true
+                        PromptEvent:FireServer(id)
+                        print("✅ Accepted NPC:", id)
+                    end
+                end
+            end
+
+            -- Jalankan tanpa wait() di loop Heartbeat
+            game:GetService("RunService").Heartbeat:Connect(function()
+                if Toggles.AutoNPC.Value then
+                    for _, npc in ipairs(Workspace:GetChildren()) do
+                        acceptVisitor(npc)
+                    end
+                end
+            end)
+
+            Library:Notify("✅ Auto NPC Enabled", 3)
+        else
+            Library:Notify("⛔ Auto NPC Disabled", 3)
+        end
+    end
+})
