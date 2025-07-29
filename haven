@@ -2,8 +2,6 @@
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 
-local Toggles = Library.Toggles
-
 Library.ForceCheckbox = false
 Library.ShowToggleFrameInKeybinds = true
 
@@ -19,18 +17,84 @@ local Tabs = {
     Main = Window:AddTab("Main", "user")
 }
 
--- ✅ Toggle Satu-Satunya
-local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
+local GroupBox = Tabs.Main:AddLeftGroupbox("Auto System")
 
-GroupBox1:AddToggle("AktifkanFollow", {
-    Text = "Enable Bot Follow",
-    Default = false,
-    Tooltip = "Enable to accept !ikuti commands",
-    Callback = function(Value)
-        if Value then
-            Library:Notify("Bot Follow Enabled", 3)
-        else
-            Library:Notify("Bot Follow Disabled", 3)
-        end
-    end,
+-- ✅ Auto NPC Toggle
+local Toggles = Library.Toggles
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local PromptEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("NpcAcceptPromptTriggered")
+
+local MY_USER_ID = Players.LocalPlayer.UserId
+local acceptedIds = {}
+
+-- Fungsi pengecekan penuh
+local function isVisitorFull()
+	local plots = Workspace:FindFirstChild("Plots")
+	if not plots then return true end
+
+	for _, plot in ipairs(plots:GetChildren()) do
+		if plot:IsA("Part") and plot:GetAttribute("Owner") == MY_USER_ID then
+			local sign = plot:FindFirstChild("Sign")
+			if sign then
+				local signFace = sign:FindFirstChild("SignFace")
+				if signFace then
+					local gui = signFace:FindFirstChildWhichIsA("SurfaceGui")
+					if gui then
+						local visitors = gui:FindFirstChild("Visitors")
+						if visitors and visitors:IsA("TextLabel") then
+							local counter = visitors:FindFirstChild("Counter")
+							if counter and counter:IsA("TextLabel") then
+								local current, max = string.match(counter.Text, "(%d+)/(%d+)")
+								current, max = tonumber(current), tonumber(max)
+								if current and max and current >= max then
+									return true
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	return false
+end
+
+-- Fungsi accept NPC
+local function acceptVisitor(npc)
+	if npc:IsA("Model") and npc.Name:match("^visitor_%d+") then
+		local owner = npc:GetAttribute("Owner")
+		local id = npc:GetAttribute("Id")
+		if owner == MY_USER_ID and typeof(id) == "string" and not acceptedIds[id] and id:match("^%b{}$") then
+			if isVisitorFull() then return end
+			acceptedIds[id] = true
+			PromptEvent:FireServer(id)
+			print("✅ Accepted NPC:", id)
+		end
+	end
+end
+
+-- Loop global (tetap aktif, tapi cek toggle)
+RunService.Heartbeat:Connect(function()
+	if Toggles.AutoNPC and Toggles.AutoNPC.Value then
+		for _, npc in ipairs(Workspace:GetChildren()) do
+			acceptVisitor(npc)
+		end
+	end
+end)
+
+-- Tambahkan toggle ke UI
+GroupBox:AddToggle("AutoNPC", {
+	Text = "Auto NPC",
+	Default = false,
+	Tooltip = "Terima visitor milik sendiri otomatis",
+	Callback = function(v)
+		if v then
+			Library:Notify("✅ Auto NPC aktif", 3)
+		else
+			Library:Notify("⛔ Auto NPC dimatikan", 3)
+		end
+	end,
 })
