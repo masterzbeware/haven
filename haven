@@ -2,6 +2,8 @@
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 
+local Toggles = Library.Toggles
+
 Library.ForceCheckbox = false
 Library.ShowToggleFrameInKeybinds = true
 
@@ -17,80 +19,18 @@ local Tabs = {
     Main = Window:AddTab("Main", "user")
 }
 
--- ✅ UI Toggle: Auto NPC
-local GroupBox = Tabs.Main:AddLeftGroupbox("Auto System")
+-- ✅ Toggle Satu-Satunya
+local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
-GroupBox:AddToggle("AutoNPC", {
-    Text = "Auto NPC",
+GroupBox1:AddToggle("AktifkanFollow", {
+    Text = "Enable Bot Follow",
     Default = false,
-    Tooltip = "Terima visitor milik sendiri",
-    Callback = function(enabled)
-        if enabled then
-            -- Mulai sistem auto NPC
-            local Players = game:GetService("Players")
-            local ReplicatedStorage = game:GetService("ReplicatedStorage")
-            local Workspace = game:GetService("Workspace")
-            local PromptEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("NpcAcceptPromptTriggered")
-
-            local MY_USER_ID = Players.LocalPlayer.UserId
-            local acceptedIds = {}
-
-            local function isVisitorFull()
-                local plots = Workspace:FindFirstChild("Plots")
-                if not plots then return true end
-
-                for _, plot in ipairs(plots:GetChildren()) do
-                    if plot:IsA("Part") and plot:GetAttribute("Owner") == MY_USER_ID then
-                        local sign = plot:FindFirstChild("Sign")
-                        if sign then
-                            local signFace = sign:FindFirstChild("SignFace")
-                            if signFace then
-                                local gui = signFace:FindFirstChildWhichIsA("SurfaceGui")
-                                if gui then
-                                    local visitors = gui:FindFirstChild("Visitors")
-                                    if visitors and visitors:IsA("TextLabel") then
-                                        local counter = visitors:FindFirstChild("Counter")
-                                        if counter and counter:IsA("TextLabel") then
-                                            local current, max = string.match(counter.Text, "(%d+)/(%d+)")
-                                            current, max = tonumber(current), tonumber(max)
-                                            if current and max and current >= max then
-                                                return true
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-                return false
-            end
-
-            local function acceptVisitor(npc)
-                if npc:IsA("Model") and npc.Name:match("^visitor_%d+") then
-                    local owner = npc:GetAttribute("Owner")
-                    local id = npc:GetAttribute("Id")
-                    if owner == MY_USER_ID and typeof(id) == "string" and not acceptedIds[id] and id:match("^%b{}$") then
-                        if isVisitorFull() then return end
-                        acceptedIds[id] = true
-                        PromptEvent:FireServer(id)
-                        print("✅ Accepted NPC:", id)
-                    end
-                end
-            end
-
-            -- Jalankan tanpa wait() di loop Heartbeat
-            game:GetService("RunService").Heartbeat:Connect(function()
-                if Toggles.AutoNPC.Value then
-                    for _, npc in ipairs(Workspace:GetChildren()) do
-                        acceptVisitor(npc)
-                    end
-                end
-            end)
-
-            Library:Notify("✅ Auto NPC Enabled", 3)
+    Tooltip = "Enable to accept !ikuti commands",
+    Callback = function(Value)
+        if Value then
+            Library:Notify("Bot Follow Enabled", 3)
         else
-            Library:Notify("⛔ Auto NPC Disabled", 3)
+            Library:Notify("Bot Follow Disabled", 3)
         end
-    end
+    end,
 })
