@@ -84,9 +84,29 @@ RunService.Heartbeat:Connect(function()
 			acceptVisitor(npc)
 		end
 	end
+
+	if Toggles.AutoCollectSafe and Toggles.AutoCollectSafe.Value then
+		local plots = Workspace:FindFirstChild("Plots")
+		if plots then
+			for _, plot in ipairs(plots:GetChildren()) do
+				if plot:IsA("Part") and plot:GetAttribute("Owner") == MY_USER_ID then
+					local safe = plot:FindFirstChild("Safe")
+					if safe and safe:IsA("Model") then
+						local hrp = safe:FindFirstChild("Hrp")
+						if hrp and hrp:IsA("BasePart") then
+							local prompt = hrp:FindFirstChild("Collect")
+							if prompt and prompt:IsA("ProximityPrompt") and prompt.Enabled then
+								fireproximityprompt(prompt, 0)
+							end
+						end
+					end
+				end
+			end
+		end
+	end
 end)
 
--- UI Toggle
+-- UI Toggle Auto NPC
 GroupBox:AddToggle("AutoNPC", {
 	Text = "Auto NPC",
 	Default = false,
@@ -96,6 +116,20 @@ GroupBox:AddToggle("AutoNPC", {
 			Library:Notify("✅ Auto NPC aktif", 3)
 		else
 			Library:Notify("⛔ Auto NPC dimatikan", 3)
+		end
+	end,
+})
+
+-- ✅ UI Toggle Auto Collect Safe
+GroupBox:AddToggle("AutoCollectSafe", {
+	Text = "Auto Collect Safe",
+	Default = false,
+	Tooltip = "Otomatis trigger prompt 'Collect' pada Safe",
+	Callback = function(v)
+		if v then
+			Library:Notify("✅ Auto Collect Safe aktif", 3)
+		else
+			Library:Notify("⛔ Auto Collect Safe dimatikan", 3)
 		end
 	end,
 })
